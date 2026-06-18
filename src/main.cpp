@@ -8,6 +8,7 @@
 #include "SkeletonData.h"
 
 enum class SpineVersion {
+    Version21 = -1,
     Version35 = 0,
     Version36 = 1,
     Version37 = 2,
@@ -15,7 +16,7 @@ enum class SpineVersion {
     Version40 = 4,
     Version41 = 5,
     Version42 = 6,
-    Invalid = -1
+    Invalid = -2
 };
 
 enum class FileFormat {
@@ -35,6 +36,11 @@ struct ConversionOptions {
     bool removeCurve = false;
 };
 
+struct VersionDetectionResult {
+    SpineVersion version = SpineVersion::Invalid;
+    bool usedJsonFallback = false;
+};
+
 bool aboveOrEqualVersion(SpineVersion version, SpineVersion target) {
     return static_cast<int>(version) >= static_cast<int>(target);
 }
@@ -43,51 +49,98 @@ bool belowOrEqualVersion(SpineVersion version, SpineVersion target) {
     return static_cast<int>(version) <= static_cast<int>(target);
 }
 
-SpineVersion detectSpineVersion(const std::string& filePath) {
+SpineVersion parseMajorMinorVersion(const std::string& versionStr) {
+    std::regex versionRegex(R"(^(\d+)\.(\d+)(?:\.(\d+))?$)");
+    std::smatch match;
+    if (!std::regex_match(versionStr, match, versionRegex)) {
+        return SpineVersion::Invalid;
+    }
+
+    std::string majorMinor = match[1].str() + "." + match[2].str();
+    if (majorMinor == "2.1") return SpineVersion::Version21;
+    if (majorMinor == "3.5") return SpineVersion::Version35;
+    if (majorMinor == "3.6") return SpineVersion::Version36;
+    if (majorMinor == "3.7") return SpineVersion::Version37;
+    if (majorMinor == "3.8") return SpineVersion::Version38;
+    if (majorMinor == "4.0") return SpineVersion::Version40;
+    if (majorMinor == "4.1") return SpineVersion::Version41;
+    if (majorMinor == "4.2") return SpineVersion::Version42;
+    return SpineVersion::Invalid;
+}
+
+SpineVersion detectSpineVersionFromHeaderScan(const std::string& filePath) {
     try {
         std::ifstream ifs(filePath, std::ios::binary);
         if (!ifs) return SpineVersion::Invalid;
-        
+
         const size_t headerSize = 256;
         char buffer[headerSize] = {0};
         ifs.read(buffer, headerSize);
         std::string data(buffer, ifs.gcount());
-        
-        // Use regex to find version pattern x.x.x
+
         std::regex versionRegex(R"((\d+)\.(\d+)\.(\d+))");
         std::smatch match;
-        
         if (std::regex_search(data, match, versionRegex)) {
-            std::string majorVersion = match[1].str();
-            std::string minorVersion = match[2].str();
-            std::string majorMinor = majorVersion + "." + minorVersion;
-            
-            if (majorMinor == "3.5") {
-                return SpineVersion::Version35;
-            } else if (majorMinor == "3.6") {
-                return SpineVersion::Version36;
-            } else if (majorMinor == "3.7") {
-                return SpineVersion::Version37;
-            } else if (majorMinor == "3.8") {
-                return SpineVersion::Version38;
-            } else if (majorMinor == "4.0") {
-                return SpineVersion::Version40;
-            } else if (majorMinor == "4.1") {
-                return SpineVersion::Version41;
-            } else if (majorMinor == "4.2") {
-                return SpineVersion::Version42;
-            }
+            return parseMajorMinorVersion(match.str());
         }
     }
     catch (...) {
         std::cerr << "Error: Failed to read file: " << filePath << "\n";
     }
-    
+
     return SpineVersion::Invalid;
+}
+
+SpineVersion detectSpineVersionFromJsonFile(const std::string& filePath) {
+    try {
+        std::ifstream ifs(filePath);
+        if (!ifs) return SpineVersion::Invalid;
+
+        Json jsonData;
+        ifs >> jsonData;
+        if (jsonData.contains("skeleton") && jsonData["skeleton"].is_object()) {
+            const auto& skeleton = jsonData["skeleton"];
+            if (skeleton.contains("spine") && skeleton["spine"].is_string()) {
+                return parseMajorMinorVersion(skeleton["spine"].get<std::string>());
+            }
+        }
+
+        if (jsonData.is_object() &&
+            jsonData.contains("bones") && jsonData["bones"].is_array() &&
+            jsonData.contains("slots") && jsonData["slots"].is_array() &&
+            jsonData.contains("skins") && jsonData["skins"].is_object() &&
+            jsonData.contains("animations") && jsonData["animations"].is_object()) {
+            return SpineVersion::Version21;
+        }
+
+        return SpineVersion::Invalid;
+    }
+    catch (...) {
+        return SpineVersion::Invalid;
+    }
+}
+
+VersionDetectionResult detectSpineVersion(const std::string& filePath, FileFormat inputFormat) {
+    VersionDetectionResult result;
+
+    if (inputFormat == FileFormat::Json) {
+        result.version = detectSpineVersionFromHeaderScan(filePath);
+        if (result.version != SpineVersion::Invalid) {
+            return result;
+        }
+
+        result.version = detectSpineVersionFromJsonFile(filePath);
+        result.usedJsonFallback = (result.version != SpineVersion::Invalid);
+        return result;
+    }
+
+    result.version = detectSpineVersionFromHeaderScan(filePath);
+    return result;
 }
 
 std::string getVersionString(SpineVersion version) {
     switch (version) {
+        case SpineVersion::Version21: return "2.1";
         case SpineVersion::Version35: return "3.5";
         case SpineVersion::Version36: return "3.6";
         case SpineVersion::Version37: return "3.7";
@@ -103,13 +156,14 @@ SpineVersion parseVersionString(const std::string& versionStr) {
     // 强制要求完整的三段式版本号 (x.y.z)
     std::regex versionRegex(R"(^(\d+)\.(\d+)\.(\d+)$)");
     std::smatch match;
-    
+
     if (std::regex_match(versionStr, match, versionRegex)) {
         std::string majorVersion = match[1].str();
         std::string minorVersion = match[2].str();
         std::string majorMinor = majorVersion + "." + minorVersion;
-        
-        if (majorMinor == "3.5") return SpineVersion::Version35;
+
+        if (majorMinor == "2.1") return SpineVersion::Version21;
+        else if (majorMinor == "3.5") return SpineVersion::Version35;
         else if (majorMinor == "3.6") return SpineVersion::Version36;
         else if (majorMinor == "3.7") return SpineVersion::Version37;
         else if (majorMinor == "3.8") return SpineVersion::Version38;
@@ -117,11 +171,37 @@ SpineVersion parseVersionString(const std::string& versionStr) {
         else if (majorMinor == "4.1") return SpineVersion::Version41;
         else if (majorMinor == "4.2") return SpineVersion::Version42;
     }
-    
+
     return SpineVersion::Invalid;
 }
 
-bool convertFile(const std::string& inputFile, const std::string& outputFile, 
+uint64_t fnv1a64(const std::string& text) {
+    uint64_t hash = 1469598103934665603ull;
+    for (unsigned char ch : text) {
+        hash ^= static_cast<uint64_t>(ch);
+        hash *= 1099511628211ull;
+    }
+    return hash;
+}
+
+bool ensureJsonOutputHash(Json& outputJson) {
+    if (!outputJson.contains("skeleton") || !outputJson["skeleton"].is_object()) {
+        return false;
+    }
+
+    auto& skeleton = outputJson["skeleton"];
+    if (skeleton.contains("hash") && skeleton["hash"].is_string() && !skeleton["hash"].get<std::string>().empty()) {
+        return false;
+    }
+
+    Json canonical = outputJson;
+    canonical["skeleton"].erase("hash");
+    uint64_t generatedHash = fnv1a64(dumpJson(canonical));
+    skeleton["hash"] = uint64ToBase64(generatedHash);
+    return true;
+}
+
+bool convertFile(const std::string& inputFile, const std::string& outputFile,
                 FileFormat inputFormat, FileFormat outputFormat, 
                 SpineVersion inputVersion, SpineVersion outputVersion, 
                 const std::string& outputVersionString,
@@ -151,6 +231,14 @@ bool convertFile(const std::string& inputFile, const std::string& outputFile,
         // Read data using input version
         SkeletonData skelData;
         switch (inputVersion) {
+            case SpineVersion::Version21: {
+                if (inputFormat != FileFormat::Json) {
+                    std::cerr << "Error: Spine 2.1 input currently supports JSON only\n";
+                    return false;
+                }
+                skelData = spine21::readJsonData(jsonData);
+                break;
+            }
             case SpineVersion::Version35: {
                 if (inputFormat == FileFormat::Skel) {
                     skelData = spine35::readBinaryData(binaryData);
@@ -339,12 +427,16 @@ bool convertFile(const std::string& inputFile, const std::string& outputFile,
                     ofs.write(reinterpret_cast<const char*>(outputData.data()), outputData.size());
                 } else {
                     auto outputJson = spine40::writeJsonData(skelData);
+                    bool generatedHash = ensureJsonOutputHash(outputJson);
                     std::ofstream ofs(outputFile);
                     if (!ofs) {
                         std::cerr << "Error: Cannot create output file: " << outputFile << "\n";
                         return false;
                     }
                     ofs << dumpJson(outputJson);
+                    if (generatedHash) {
+                        std::cout << "Warning: Missing skeleton hash; generated compatibility hash for JSON output.\n";
+                    }
                 }
                 break;
             }
@@ -359,12 +451,16 @@ bool convertFile(const std::string& inputFile, const std::string& outputFile,
                     ofs.write(reinterpret_cast<const char*>(outputData.data()), outputData.size());
                 } else {
                     auto outputJson = spine41::writeJsonData(skelData);
+                    bool generatedHash = ensureJsonOutputHash(outputJson);
                     std::ofstream ofs(outputFile);
                     if (!ofs) {
                         std::cerr << "Error: Cannot create output file: " << outputFile << "\n";
                         return false;
                     }
                     ofs << dumpJson(outputJson);
+                    if (generatedHash) {
+                        std::cout << "Warning: Missing skeleton hash; generated compatibility hash for JSON output.\n";
+                    }
                 }
                 break;
             }
@@ -379,12 +475,16 @@ bool convertFile(const std::string& inputFile, const std::string& outputFile,
                     ofs.write(reinterpret_cast<const char*>(outputData.data()), outputData.size());
                 } else {
                     auto outputJson = spine42::writeJsonData(skelData);
+                    bool generatedHash = ensureJsonOutputHash(outputJson);
                     std::ofstream ofs(outputFile);
                     if (!ofs) {
                         std::cerr << "Error: Cannot create output file: " << outputFile << "\n";
                         return false;
                     }
                     ofs << dumpJson(outputJson);
+                    if (generatedHash) {
+                        std::cout << "Warning: Missing skeleton hash; generated compatibility hash for JSON output.\n";
+                    }
                 }
                 break;
             }
@@ -506,18 +606,29 @@ int main(int argc, char* argv[]) {
         (options.outputFormat == FileFormat::Json || options.outputFormat == FileFormat::Skel)) {
         
         // Detect input Spine version
-        SpineVersion inputVersion = detectSpineVersion(options.inputFile);
-        
+        VersionDetectionResult detection = detectSpineVersion(options.inputFile, options.inputFormat);
+        SpineVersion inputVersion = detection.version;
+
         if (inputVersion == SpineVersion::Invalid) {
             std::cerr << "Error: Could not detect Spine version from input file\n";
             return 1;
         }
-        
+
         // Use output version if specified, otherwise use input version
         SpineVersion outputVersion = (options.outputVersion != SpineVersion::Invalid) ? options.outputVersion : inputVersion;
         std::string outputVersionString = options.outputVersionString; // 使用用户指定的完整版本号
-        
+
+        if (inputVersion == SpineVersion::Version21) {
+            if (!(options.outputFormat == FileFormat::Json && outputVersion == SpineVersion::Version38)) {
+                std::cerr << "Error: Spine 2.1 input currently supports output to 3.8 JSON only\n";
+                return 1;
+            }
+        }
+
         std::cout << "Detected input Spine version: " << getVersionString(inputVersion) << "\n";
+        if (detection.usedJsonFallback) {
+            std::cout << "Warning: Non-standard Spine JSON detected; version resolved from parsed JSON instead of file header.\n";
+        }
         if (inputVersion != outputVersion) {
             std::cout << "Converting to output Spine version: " << getVersionString(outputVersion);
             if (!outputVersionString.empty()) {

@@ -6,8 +6,8 @@ A powerful command-line tool for converting Spine skeleton data between differen
 
 ## ✨ Features
 
-- **Automatic Version Detection**: Intelligently detects Spine version from `.skel` or `.json` files
-- **Multi-Version Support**: Compatible with Spine versions 3.5, 3.6, 3.7, 3.8, 4.0, 4.1, and 4.2
+- **Automatic Version Detection**: Intelligently detects Spine version from `.skel` or `.json` files, including non-standard JSON layouts that omit the version from the file header
+- **Multi-Version Support**: Compatible with Spine versions 2.1 (JSON input upgraded to 3.8 JSON), 3.5, 3.6, 3.7, 3.8, 4.0, 4.1, and 4.2
 - **Smart Format Detection**: Automatically detects file formats based on file extensions
 - **Cross-Platform**: Built with C++20 and CMake for maximum portability
 - **Comprehensive Testing**: Includes test suites for all supported versions
@@ -64,11 +64,17 @@ SpineSkeletonDataConverter.exe new.skel old.json -v 3.8.99
 #   --remove-curve  Strip animation curves instead of converting when crossing 3.x/4.x
 #   --help          Show this help message
 
-# Supported Spine versions: 3.5.x, 3.6.x, 3.7.x, 3.8.x, 4.0.x, 4.1.x, 4.2.x
+# Supported Spine versions: 2.1.x (JSON input upgraded to 3.8 JSON only), 3.5.x, 3.6.x, 3.7.x, 3.8.x, 4.0.x, 4.1.x, 4.2.x
 # Note: Version must be specified in complete x.y.z format (e.g., 4.2.11, not 4.2)
 # Input version detection is automatic based on file content.
 # Output version defaults to input version unless specified with -v.
 ```
+
+### Compatibility Notes
+
+- Some older or tool-generated JSON files place version metadata outside the first 256 bytes. The converter now falls back to parsed JSON detection and prints a warning when this compatibility path is used.
+- When writing JSON output, the converter now preserves an existing `skeleton.hash` when available and generates a compatibility hash when it is missing so external preview tools can still load the file.
+- Spine `2.1.x` support is currently limited to **JSON input upgraded to 3.8 JSON output**. After that upgrade, you can continue using the existing 3.8 → newer-version conversion flow.
 
 ## 🛠️ Spine Atlas 4.x to 3.x Downgrade
 

@@ -34,7 +34,8 @@ Json writeJsonData(const SkeletonData& skeletonData) {
     Json j = Json::object();
 
     Json skeleton = Json::object();
-    if (skeletonData.hash != 0) skeleton["hash"] = uint64ToBase64(skeletonData.hash);
+    if (skeletonData.hashString) skeleton["hash"] = skeletonData.hashString;
+    else if (skeletonData.hash != 0) skeleton["hash"] = uint64ToBase64(skeletonData.hash);
     if (skeletonData.version) skeleton["spine"] = skeletonData.version;
     skeleton["x"] = skeletonData.x;
     skeleton["y"] = skeletonData.y;

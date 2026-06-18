@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+if len(sys.argv) != 2:
+    print('usage: regression_generate_missing_hash.py <converter-exe>')
+    sys.exit(2)
+
+exe = Path(sys.argv[1])
+repo = Path(__file__).resolve().parent.parent
+source_file = repo / '871_s38.json'
+input_file = repo / '871_s38.nohash.test.json'
+output_file = repo / '871_s38.nohash.test.out.json'
+
+if not source_file.exists():
+    print('SKIP: 871_s38.json sample not present')
+    sys.exit(0)
+
+for path in [input_file, output_file]:
+    if path.exists():
+        path.unlink()
+
+obj = json.loads(source_file.read_text(encoding='utf-8'))
+obj.get('skeleton', {}).pop('hash', None)
+input_file.write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding='utf-8')
+
+result = subprocess.run(
+    [str(exe), str(input_file), str(output_file), '-v', '4.2.11'],
+    capture_output=True,
+    text=True,
+)
+
+print('RETURNCODE', result.returncode)
+print('STDOUT_START')
+print(result.stdout)
+print('STDOUT_END')
+print('STDERR_START')
+print(result.stderr)
+print('STDERR_END')
+
+if result.returncode != 0:
+    print('UNEXPECTED FAILURE: conversion should succeed even when input hash is missing')
+    sys.exit(1)
+
+out_obj = json.loads(output_file.read_text(encoding='utf-8'))
+out_hash = out_obj.get('skeleton', {}).get('hash')
+if not isinstance(out_hash, str) or not out_hash:
+    print('EXPECTED RED: output JSON is missing generated skeleton.hash')
+    sys.exit(1)
+
+if 'generated compatibility hash' not in (result.stdout + result.stderr):
+    print('EXPECTED RED: output succeeded but did not report generated hash')
+    sys.exit(1)
+
+print('PASS: output JSON contains generated hash and generation warning')

@@ -564,9 +564,13 @@ void writeFloat(Binary&, float);
 void writeString(Binary&, const OptStr&);
 void writeStringRef(Binary&, const OptStr&, const SkeletonData&);
 
-std::string dumpJson(const Json&); 
+std::string dumpJson(const Json&);
 std::string uint64ToBase64(uint64_t);
 uint64_t base64ToUint64(const std::string&);
+
+namespace spine21 {
+    SkeletonData readJsonData(const Json&);
+}
 
 namespace spine35 {
     SkeletonData readBinaryData(const Binary&);
