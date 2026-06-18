@@ -40,6 +40,28 @@ cmake ..
 cmake --build . --config Release
 ```
 
+### Convenient Windows Build Commands
+
+#### Option A: Use a local portable CMake package
+
+If you extracted a portable CMake package into the project directory, you can build directly with:
+
+```bash
+./cmake-4.4.0-rc1-windows-x86_64/bin/cmake.exe -S . -B build-vsgen -G "Visual Studio 17 2022" -A x64
+./cmake-4.4.0-rc1-windows-x86_64/bin/cmake.exe --build build-vsgen --config Release
+```
+
+#### Option B: Use Visual Studio 2022's bundled CMake
+
+If Visual Studio 2022 is installed, you can use its bundled CMake directly:
+
+```bash
+"/c/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe" -S . -B build-vsgen -G "Visual Studio 17 2022" -A x64
+"/c/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe" --build build-vsgen --config Release
+```
+
+The generated executables will be placed under `build-vsgen/Release/`.
+
 ### Usage
 
 ```bash
@@ -75,6 +97,7 @@ SpineSkeletonDataConverter.exe new.skel old.json -v 3.8.99
 - Some older or tool-generated JSON files place version metadata outside the first 256 bytes. The converter now falls back to parsed JSON detection and prints a warning when this compatibility path is used.
 - When writing JSON output, the converter now preserves an existing `skeleton.hash` when available and generates a compatibility hash when it is missing so external preview tools can still load the file.
 - Spine `2.1.x` support is currently limited to **JSON input upgraded to 3.8 JSON output**. After that upgrade, you can continue using the existing 3.8 → newer-version conversion flow.
+- When converting legacy JSON files without a `skeleton.hash`, the converter will now generate a compatibility hash automatically for JSON output and print a warning so preview tools can still open the result.
 
 ## 🛠️ Spine Atlas 4.x to 3.x Downgrade
 
