@@ -14,12 +14,12 @@ A powerful command-line tool for converting Spine skeleton data between differen
 
 ## 📋 Format Support Matrix
 
-|           | 3.5 | 3.6 | 3.7 | 3.8 | 4.0 | 4.1 | 4.2 |
-| --------- | --- | --- | --- | --- | --- | --- | --- |
-| JSON Reader | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅  |
-| JSON Writer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅  |
-| Binary Reader | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Binary Writer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+|           | 2.1 | 3.5 | 3.6 | 3.7 | 3.8 | 4.0 | 4.1 | 4.2 |
+| --------- | --- | --- | --- | --- | --- | --- | --- | --- |
+| JSON Reader | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅  | ✅ |
+| JSON Writer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅  | ✅ |
+| Binary Reader | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Binary Writer | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 **Legend**: ✅ Supported | 🚧 In Development | ❌ Not Supported
 
