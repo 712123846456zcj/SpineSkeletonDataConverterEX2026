@@ -347,12 +347,16 @@ bool convertFile(const std::string& inputFile, const std::string& outputFile,
                     ofs.write(reinterpret_cast<const char*>(outputData.data()), outputData.size());
                 } else {
                     auto outputJson = spine35::writeJsonData(skelData);
+                    bool generatedHash = ensureJsonOutputHash(outputJson);
                     std::ofstream ofs(outputFile);
                     if (!ofs) {
                         std::cerr << "Error: Cannot create output file: " << outputFile << "\n";
                         return false;
                     }
                     ofs << dumpJson(outputJson);
+                    if (generatedHash) {
+                        std::cout << "Warning: Missing skeleton hash; generated compatibility hash for JSON output.\n";
+                    }
                 }
                 break;
             }
@@ -367,12 +371,16 @@ bool convertFile(const std::string& inputFile, const std::string& outputFile,
                     ofs.write(reinterpret_cast<const char*>(outputData.data()), outputData.size());
                 } else {
                     auto outputJson = spine36::writeJsonData(skelData);
+                    bool generatedHash = ensureJsonOutputHash(outputJson);
                     std::ofstream ofs(outputFile);
                     if (!ofs) {
                         std::cerr << "Error: Cannot create output file: " << outputFile << "\n";
                         return false;
                     }
                     ofs << dumpJson(outputJson);
+                    if (generatedHash) {
+                        std::cout << "Warning: Missing skeleton hash; generated compatibility hash for JSON output.\n";
+                    }
                 }
                 break;
             }
@@ -387,12 +395,16 @@ bool convertFile(const std::string& inputFile, const std::string& outputFile,
                     ofs.write(reinterpret_cast<const char*>(outputData.data()), outputData.size());
                 } else {
                     auto outputJson = spine37::writeJsonData(skelData);
+                    bool generatedHash = ensureJsonOutputHash(outputJson);
                     std::ofstream ofs(outputFile);
                     if (!ofs) {
                         std::cerr << "Error: Cannot create output file: " << outputFile << "\n";
                         return false;
                     }
                     ofs << dumpJson(outputJson);
+                    if (generatedHash) {
+                        std::cout << "Warning: Missing skeleton hash; generated compatibility hash for JSON output.\n";
+                    }
                 }
                 break;
             }
@@ -407,12 +419,16 @@ bool convertFile(const std::string& inputFile, const std::string& outputFile,
                     ofs.write(reinterpret_cast<const char*>(outputData.data()), outputData.size());
                 } else {
                     auto outputJson = spine38::writeJsonData(skelData);
+                    bool generatedHash = ensureJsonOutputHash(outputJson);
                     std::ofstream ofs(outputFile);
                     if (!ofs) {
                         std::cerr << "Error: Cannot create output file: " << outputFile << "\n";
                         return false;
                     }
                     ofs << dumpJson(outputJson);
+                    if (generatedHash) {
+                        std::cout << "Warning: Missing skeleton hash; generated compatibility hash for JSON output.\n";
+                    }
                 }
                 break;
             }
